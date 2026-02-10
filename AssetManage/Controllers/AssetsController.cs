@@ -1,0 +1,84 @@
+using AssetManage.Data;
+using AssetManage.DTOs;
+using AssetManage.Models.Entities;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace AssetManage.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AssetsController : ControllerBase
+    {
+        private readonly ApplicationDbContext _db;
+
+        public AssetsController(ApplicationDbContext db)
+        {
+            _db = db;
+        }
+
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var assets = await _db.Set<Asset>().ToListAsync();
+            return Ok(assets);
+        }
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
+        {
+            var asset = await _db.Set<Asset>().FindAsync(id);
+            if (asset == null) return NotFound();
+            return Ok(asset);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(AssetCreateDto dto)
+        {
+            var asset = new Asset
+            {
+                Name = dto.Name,
+                CategoryID = dto.CategoryID,
+                Tag = dto.Tag,
+                PurchaseDate = dto.PurchaseDate,
+                Cost = dto.Cost,
+                Status = AssetManage.Models.Enums.AssetStatus.Available,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Set<Asset>().Add(asset);
+            await _db.SaveChangesAsync();
+            return CreatedAtAction(nameof(Get), new { id = asset.AssetID }, asset);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, AssetUpdateDto dto)
+        {
+            var asset = await _db.Set<Asset>().FindAsync(id);
+            if (asset == null) return NotFound();
+
+            asset.Name = dto.Name;
+            asset.CategoryID = dto.CategoryID;
+            asset.Tag = dto.Tag;
+            asset.PurchaseDate = dto.PurchaseDate;
+            asset.Cost = dto.Cost;
+            asset.Status = dto.Status;
+            asset.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var asset = await _db.Set<Asset>().FindAsync(id);
+            if (asset == null) return NotFound();
+
+            asset.Status = AssetManage.Models.Enums.AssetStatus.Deleted;
+            asset.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+    }
+}
