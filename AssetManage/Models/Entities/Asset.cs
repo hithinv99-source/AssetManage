@@ -1,6 +1,7 @@
+using AssetManage.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using AssetManage.Models.Enums;
+using System.Text.Json.Serialization;
 
 namespace AssetManage.Models.Entities
 {
@@ -15,7 +16,8 @@ namespace AssetManage.Models.Entities
 
         public int CategoryID { get; set; }
 
-        [ForeignKey("CategoryID")]
+        [ForeignKey(nameof(CategoryID))]
+        [JsonIgnore]
         public Category? Category { get; set; }
 
         public string? Tag { get; set; }

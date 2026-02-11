@@ -1,6 +1,7 @@
 using AssetManage.Data;
 using AssetManage.DTOs;
 using AssetManage.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace AssetManage.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
     public class AssetsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
@@ -17,19 +19,47 @@ namespace AssetManage.Controllers
             _db = db;
         }
 
-        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
+        //[Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
         [HttpGet]
+        [Authorize(Roles = "Admin,Manager,Employee")]
         public async Task<IActionResult> GetAll()
         {
-            var assets = await _db.Set<Asset>().ToListAsync();
+            var assets = await _db.Assets
+                .Include(a => a.Category)
+                .Select(a => new AssetResponseDto(
+                    a.AssetID,
+                    a.Name,
+                    a.CategoryID,
+                    a.Category!.Name,
+                    a.Tag,
+                    a.PurchaseDate,
+                    a.Cost,
+                    a.Status
+                ))
+                .ToListAsync();
             return Ok(assets);
         }
-        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,Employee")]
+
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Manager,Employee")]
         public async Task<IActionResult> Get(int id)
         {
-            var asset = await _db.Set<Asset>().FindAsync(id);
-            if (asset == null) return NotFound();
+            var asset = await _db.Assets
+                .Include(a => a.Category)
+                .Where(a => a.AssetID == id)
+                .Select(a => new AssetResponseDto(
+                    a.AssetID,
+                    a.Name,
+                    a.CategoryID,
+                    a.Category!.Name,
+                    a.Tag,
+                    a.PurchaseDate,
+                    a.Cost,
+                    a.Status
+                ))
+                .FirstOrDefaultAsync();
+            if (asset == null)
+                return NotFound();
             return Ok(asset);
         }
 
